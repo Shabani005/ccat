@@ -8,9 +8,10 @@ int main(int argc, char *argv[]){
   
 
   // filepointer = fopen("1g.txt", "r");
-  filepointer = fopen(argv[0], "r");
+  filepointer = fopen(argv[1], "r");
 
   // implement multiple argv's 
+  // implement multiple threads that divides the process
 
   if (filepointer == NULL){
     printf("couldnt open file");
