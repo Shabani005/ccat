@@ -1,31 +1,16 @@
 #include <stdio.h>
-#include <stdlib.h>
+#define NB_IMPLEMENTATION
+#include "nb.h"
 
- typedef struct{
-    FILE **fpArr;
-    int chars;
-  }CC_FILES;
-
-// implement multithreading that divides the process
 int main(int argc, char **argv){
- 
-  CC_FILES instance;
-  instance.fpArr = malloc(sizeof(FILE*) * argc);
-
-  if (instance.fpArr == NULL){
-    printf("couldnt open file");
-    return 1;
-  }
-
-  int chars;
-  for (int i=0; i < argc-1; i++){
-    instance.fpArr[i] = fopen(argv[i+1], "r");
-    while ((chars = fgetc(instance.fpArr[i])) != EOF){
-      char msg2 = chars;
-      printf("%c", msg2);
+  if (argc < 2){
+    printf("Usage %s <file>\n", argv[0]);
+  } else {
+    for (int i=0; i < argc; ++i){
+    if (nb_does_file_exist(argv[i])){
+      printf("%s\n", nb_read_file(argv[i]));
+      }
     }
-    fclose(instance.fpArr[i]);
-  }  
-
+  }
   return 0;
 }
