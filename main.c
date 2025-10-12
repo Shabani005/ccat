@@ -8,7 +8,7 @@ int main(int argc, char **argv){
   } else {
     for (int i=0; i < argc; ++i){
     if (nb_does_file_exist(argv[i])){
-      printf("%s\n", nb_read_file(argv[i]));
+      fprintf(stdout, "%s\0", nb_read_file(argv[i]));
       }
     }
   }
