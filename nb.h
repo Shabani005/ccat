@@ -7,23 +7,35 @@
 #include <string.h>
 #include <time.h>
 
+
+
+typedef struct {
+  int debug;
+} nb_opt;
+
 typedef struct{
   int capacity;
   int arrsize;
   char** value;
 } nb_arr;
 
-#define nb_append_da(nb_arr, ...) \
-    nb_append_va(nb_arr, \
-                       ((const char*[]){__VA_ARGS__}), \
-                       (sizeof((const char*[]){__VA_ARGS__})/sizeof(const char*)))
-
- typedef struct{
+typedef struct{
     FILE *filep;
     size_t filesize;
     int chars;
     char *buf;
   } nb_file;
+
+#define nb_append_da(nb_arr, ...) \
+    nb_append_va(nb_arr, \
+                       ((const char*[]){__VA_ARGS__}), \
+                       (sizeof((const char*[]){__VA_ARGS__})/sizeof(const char*)))
+
+
+#define nb_qsortsa(arr) nb_qsorts_impl((arr), sizeof(arr)/sizeof(arr[0]))
+#define nb_qsortf(arr) nb_qsortf_impl((arr), sizeof(arr)/sizeof(arr[0]))
+#define nb_qsorti(arr) nb_qsorti_impl((arr), sizeof(arr)/sizeof(arr[0]))
+#define nb_split(string, ...) nb_split_impl(string, (nb_opt) {__VA_ARGS__})
 
 void nb_init(nb_arr *newarr, int initial_capacity); // obsolete
 
@@ -46,6 +58,7 @@ void nb_cmd(nb_arr *newarr);
 // File utils
 void nb_copy_file(char* old_file_name, char* new_file_name);
 char* nb_read_file(char* file_name);
+nb_file nb_read_file_c(char* file_name);
 bool nb_did_file_change(char *filename);
 bool nb_does_file_exist(char *filename);
 
@@ -54,6 +67,11 @@ bool nb_does_file_exist(char *filename);
 
 void nb_rebuild(int argc, char **argv);
 
+// Misc utils
+int nb_compf(const void *a, const void *b);
+int nb_compi(const void *a, const void *b);
+void nb_qsortf_impl(void *base, size_t nmemb); // these    functions      macros
+void nb_qsorti_impl(void *base, size_t nmemb); //      two          have 
 
 
 
@@ -186,6 +204,11 @@ void nb_copy_file(char* old_file_name, char* new_file_name){ // old name shouldn
   nb_file old_file; 
   nb_file new_file;
 
+  if (!nb_does_file_exist){
+    printf("%s does not exit", old_file_name);
+    return;
+  }
+  
   old_file.filep = fopen(old_file_name, "rb");
   fseek(old_file.filep, 0, SEEK_END);
   
@@ -203,6 +226,11 @@ void nb_copy_file(char* old_file_name, char* new_file_name){ // old name shouldn
 bool nb_did_file_change(char *filename){
   struct stat file_old;
   stat(filename, &file_old);
+
+  if (!nb_does_file_exist){
+    printf("%s does not exist\n", filename);
+    return 0;
+  }
   
   struct stat file_new;
   char buf[64];
@@ -216,8 +244,9 @@ bool nb_did_file_change(char *filename){
 bool nb_does_file_exist(char *filename){
     if (access(filename, F_OK) == 0){
     return true;
-  }
+  } else {
   return false;
+  }
 }
 
 void nb_rebuild(int argc, char **argv){
@@ -254,7 +283,9 @@ void nb_rebuild(int argc, char **argv){
 
       printf("\n");
 
-      nb_append_da(&cmd, argv[0]);
+      for (int i=0; i<argc; ++i){
+        nb_append_da(&cmd, argv[i]);
+      }
       nb_cmd(&cmd);
             exit(1);
 
@@ -267,10 +298,27 @@ void nb_rebuild(int argc, char **argv){
   }
 }
 
-char* nb_read_file(char* file_name){ // old name shouldnt be nobuild.c. it should be the name of the current file. I should think more about adding error handling
+
+nb_file nb_read_file_c(char* file_name){ // old name shouldnt be nobuild.c. it should be the name of the current file. I should think more about adding error handling
   nb_file file; 
 
   file.filep = fopen(file_name, "rb");
+  fseek(file.filep, 0, SEEK_END);
+  
+  file.filesize = ftell(file.filep);
+  file.buf = (char*)malloc(file.filesize+1);
+  fseek(file.filep, 0, SEEK_SET);
+  fread(file.buf, 1, file.filesize, file.filep);
+  fclose(file.filep);
+  file.buf[file.filesize] = '\0';
+  return file;
+}
+
+
+char* nb_read_file(char* file_name){ // old name shouldnt be nobuild.c. it should be the name of the current file. I should think more about adding error handling
+  nb_file file; 
+
+  file.filep = fopen(file_name, "r");
   fseek(file.filep, 0, SEEK_END);
   
   file.filesize = ftell(file.filep);
@@ -288,5 +336,65 @@ void nb_append_va(nb_arr *newarr, const char *items[], int count) {
     }
 }
 
+int nb_compf(const void *a, const void *b){
+  float fa = *(const float*)a;
+  float fb = *(const float*)b;
+  if (fa < fb) return -1;
+  else if (fa > fb) return 1;
+  else return 0;
+}
+
+int nb_compi(const void *a, const void *b){
+  float ia = *(const int*)a;
+  float ib = *(const int*)b;
+  if (ia < ib) return -1;
+  else if (ia > ib) return 1;
+  else return 0;
+}
+
+int nb_compsa(const void *a, const void *b) {
+    const char *sa = *(const char **)a;
+    const char *sb = *(const char **)b;
+
+    size_t la = strlen(sa);
+    size_t lb = strlen(sb);
+
+    if (la < lb) return -1;
+    else if (la > lb) return 1;
+    else return 0;
+}
+
+void nb_qsortf_impl(void *base, size_t nmemb){ 
+  qsort(base, nmemb, sizeof(float), nb_compf);
+}
+
+void nb_qsortsa_impl(void *base, size_t nmemb){ 
+  qsort(base, nmemb, sizeof(char*), nb_compsa);
+}
+
+void nb_qsorti_impl(void *base, size_t nmemb){ 
+  qsort(base, nmemb, sizeof(int), nb_compi);
+}
+
+char** nb_split_impl(char* string, nb_opt opt){
+  size_t n = strlen(string);
+  char** split = malloc(sizeof(char*)*n);
+  for (int i=0; i<n; ++i){
+    split[i] = malloc(2);
+    split[i][0] = string[i];
+    split[i][1] = '\0';
+  }
+  split[n] = NULL;
+  
+  if (opt.debug){
+    printf("[");
+    for (int i=0; i<n; ++i){
+      printf("%s,", split[i]);
+    }
+    printf("]\n");
+  }
+  return split;
+}
 #endif //NB_IMPLEMENTATION
 
+// add stripping and general nb_da_append later
